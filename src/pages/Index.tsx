@@ -1,19 +1,15 @@
-import Header from "@/components/Header";
-import HeroSection from "@/components/HeroSection";
-import LoginSection from "@/components/LoginSection";
-import InfoSection from "@/components/InfoSection";
-import Footer from "@/components/Footer";
+import TopBar from "@/components/TopBar";
+import MainHeader from "@/components/MainHeader";
+import MainLoginSection from "@/components/MainLoginSection";
+import UUCMSFooter from "@/components/UUCMSFooter";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main>
-        <HeroSection />
-        <LoginSection />
-        <InfoSection />
-      </main>
-      <Footer />
+    <div className="min-h-screen">
+      <TopBar />
+      <MainHeader />
+      <MainLoginSection />
+      <UUCMSFooter />
     </div>
   );
 };
