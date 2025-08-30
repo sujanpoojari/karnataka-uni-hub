@@ -1,10 +1,16 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, RotateCcw } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 
 const LoginForm = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -12,9 +18,100 @@ const LoginForm = () => {
   });
   const [captchaValue] = useState('89561'); // Static captcha for demo
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Login attempt:', formData);
+    
+    // Basic validation
+    if (!formData.username || !formData.password) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.captcha !== captchaValue) {
+      toast({
+        title: "Error", 
+        description: "Invalid captcha. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // For demo purposes, using username as email
+      const email = formData.username.includes('@') ? formData.username : `${formData.username}@uucms.gov.in`;
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: formData.password,
+      });
+
+      if (error) {
+        // If user doesn't exist, create account
+        if (error.message.includes('Invalid login credentials')) {
+          const { error: signUpError } = await supabase.auth.signUp({
+            email: email,
+            password: formData.password,
+          });
+
+          if (signUpError) {
+            toast({
+              title: "Error",
+              description: signUpError.message,
+              variant: "destructive",
+            });
+            return;
+          }
+
+          toast({
+            title: "Account Created",
+            description: "Account created successfully. You can now login.",
+          });
+          
+          // Try to sign in again
+          const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: formData.password,
+          });
+
+          if (loginError) {
+            toast({
+              title: "Error",
+              description: loginError.message,
+              variant: "destructive",
+            });
+            return;
+          }
+        } else {
+          toast({
+            title: "Error",
+            description: error.message,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      toast({
+        title: "Success",
+        description: "Login successful! Redirecting to dashboard...",
+      });
+
+      navigate('/dashboard');
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -90,9 +187,10 @@ const LoginForm = () => {
         {/* Login Button */}
         <Button
           type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 text-lg"
+          disabled={loading}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 text-lg disabled:opacity-50"
         >
-          Log In
+          {loading ? 'Logging in...' : 'Log In'}
         </Button>
 
         {/* Additional Links */}
